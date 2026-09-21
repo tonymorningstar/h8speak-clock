@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>h8speak clock</title>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.container {
+    width: min(92vw, 700px);
+    text-align: center;
+}
+
+/* Название */
+.title {
+    font-size: clamp(18px, 4vw, 28px);
+    font-weight: 600;
+    letter-spacing: 5px;
+    margin-bottom: 20px;
+    opacity: 0.75;
+}
+
+/* Цифровые часы */
+.digital {
+    font-size: clamp(65px, 15vw, 130px);
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: 2px;
+    font-variant-numeric: tabular-nums;
+    margin-bottom: 45px;
+}
+
+/* Циферблат БЕЗ внешнего круга */
+.clock {
+    position: relative;
+    width: min(82vw, 500px);
+    height: min(82vw, 500px);
+    margin: auto;
+}
+
+/* Цифры */
+.number {
+    position: absolute;
+    width: 44px;
+    height: 30px;
+    text-align: center;
+    font-size: clamp(12px, 3vw, 19px);
+    line-height: 30px;
+    font-variant-numeric: tabular-nums;
+    transform: translate(-50%, -50%);
+}
+
+/* Стрелки */
+.hand {
+    position: absolute;
+    left: 50%;
+    bottom: 50%;
+    transform-origin: 50% 100%;
+    border-radius: 10px;
+    transform: translateX(-50%) rotate(0deg);
+}
+
+/* Часовая */
+.hour-hand {
+    width: 9px;
+    height: 28%;
+    background: #fff;
+    z-index: 5;
+}
+
+/* Минутная */
+.minute-hand {
+    width: 5px;
+    height: 37%;
+    background: #aaa;
+    z-index: 6;
+}
+
+/* Секундная */
+.second-hand {
+    width: 2px;
+    height: 42%;
+    background: #666;
+    z-index: 7;
+}
+
+/* Центр стрелок */
+.center {
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    background: #fff;
+    border-radius: 50%;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+}
+
+/* На маленьком экране */
+@media (max-height: 700px) {
+
+    .title {
+        margin-bottom: 10px;
+    }
+
+    .digital {
+        margin-bottom: 20px;
+    }
+
+    .clock {
+        width: min(60vh, 400px);
+        height: min(60vh, 400px);
+    }
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="title">
+        h8speak clock
+    </div>
+
+    <div class="digital" id="digital">
+        00:00:00
+    </div>
+
+    <div class="clock" id="clock">
+
+        <!-- Стрелки -->
+        <div class="hand hour-hand" id="hourHand"></div>
+        <div class="hand minute-hand" id="minuteHand"></div>
+        <div class="hand second-hand" id="secondHand"></div>
+
+        <!-- Центр -->
+        <div class="center"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+/* =====================================================
+   СОЗДАЁМ 30 ЦИФР: 00–29
+   ===================================================== */
+
+const clock = document.getElementById("clock");
+
+for (let i = 0; i < 30; i++) {
+
+    const number = document.createElement("div");
+
+    number.className = "number";
+
+    number.textContent = String(i).padStart(2, "0");
+
+    /*
+        Расположение цифр по кругу.
+
+        00 сверху.
+        15 снизу.
+        30 позиций = полный круг.
+    */
+
+    const angle = (i / 30) * 360;
+    const rad = angle * Math.PI / 180;
+
+    /*
+        Расстояние цифр от центра.
+        43% — чтобы цифры находились внутри
+        условного циферблата.
+    */
+
+    const radius = 43;
+
+    const x = 50 + Math.sin(rad) * radius;
+    const y = 50 - Math.cos(rad) * radius;
+
+    number.style.left = x + "%";
+    number.style.top = y + "%";
+
+    clock.appendChild(number);
+}
+
+
+/* =====================================================
+   ОБНОВЛЕНИЕ ЧАСОВ
+   ===================================================== */
+
+function updateClock() {
+
+    const now = new Date();
+
+    const realHours = now.getHours();
+    const realMinutes = now.getMinutes();
+    const realSeconds = now.getSeconds();
+    const milliseconds = now.getMilliseconds();
+
+
+    /*
+        Реальное количество секунд
+        с начала обычных суток.
+    */
+
+    const realTotalSeconds =
+        realHours * 3600 +
+        realMinutes * 60 +
+        realSeconds +
+        milliseconds / 1000;
+
+
+    /*
+        24 реальных часа превращаются
+        в 30 часов h8speak.
+
+        30 / 24 = 1.25
+    */
+
+    const h8TotalSeconds =
+        realTotalSeconds * 1.25;
+
+
+    /* =================================================
+       ЦИФРОВОЕ ВРЕМЯ
+       ================================================= */
+
+    const h8Hours =
+        Math.floor(h8TotalSeconds / 3600);
+
+    const remaining =
+        h8TotalSeconds % 3600;
+
+    const h8Minutes =
+        Math.floor(remaining / 60);
+
+    const h8Seconds =
+        Math.floor(remaining % 60);
+
+
+    const h =
+        String(h8Hours).padStart(2, "0");
+
+    const m =
+        String(h8Minutes).padStart(2, "0");
+
+    const s =
+        String(h8Seconds).padStart(2, "0");
+
+
+    document.getElementById("digital").textContent =
+        `${h}:${m}:${s}`;
+
+
+    /* =================================================
+       АНАЛОГОВЫЙ ЦИФЕРБЛАТ
+       ================================================= */
+
+
+    /*
+        ЧАСОВАЯ СТРЕЛКА
+
+        Полный круг = 30 часов.
+    */
+
+    const hourAngle =
+        (h8TotalSeconds / (30 * 3600)) * 360;
+
+
+    /*
+        МИНУТНАЯ СТРЕЛКА
+
+        Полный круг = 60 минут.
+    */
+
+    const minuteAngle =
+        (h8TotalSeconds / 3600) * 360;
+
+
+    /*
+        СЕКУНДНАЯ СТРЕЛКА
+
+        Полный круг = 60 секунд.
+    */
+
+    const secondAngle =
+        (h8TotalSeconds / 60) * 360;
+
+
+    /* Двигаем стрелки */
+
+    document.getElementById("hourHand").style.transform =
+        `translateX(-50%) rotate(${hourAngle}deg)`;
+
+    document.getElementById("minuteHand").style.transform =
+        `translateX(-50%) rotate(${minuteAngle}deg)`;
+
+    document.getElementById("secondHand").style.transform =
+        `translateX(-50%) rotate(${secondAngle}deg)`;
+}
+
+
+/*
+    Обновляем 20 раз в секунду,
+    чтобы стрелки двигались плавно.
+*/
+
+setInterval(updateClock, 50);
+
+updateClock();
+
+</script>
+
+</body>
+</html>
